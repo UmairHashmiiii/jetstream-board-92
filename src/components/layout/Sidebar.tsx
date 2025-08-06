@@ -22,7 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'dev', 'pm', 'cto', 'lead', 'designer'] },
     { id: 'projects', label: 'Projects', icon: FolderKanban, roles: ['admin', 'dev', 'pm', 'cto', 'lead'] },
-    { id: 'members', label: 'Team', icon: Users, roles: ['admin'] },
+    { id: 'team', label: 'Team', icon: Users, roles: ['admin'] },
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin', 'cto'] },
   ];
 

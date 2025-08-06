@@ -14,6 +14,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
+interface DashboardProps {
+  onNavigateToProjects?: () => void;
+}
+
 interface DashboardStats {
   totalProjects: number;
   totalModules: number;
@@ -23,7 +27,7 @@ interface DashboardStats {
   sprintProgress: { sprint: string; completed: number; total: number }[];
 }
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigateToProjects }) => {
   const { profile } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
