@@ -71,8 +71,9 @@ const SignUp: React.FC<SignUpProps> = ({ onSwitchToSignIn }) => {
       } else {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account",
+          description: "You can now sign in to JeuxBoard",
         });
+        // Auto-switch to sign in
         onSwitchToSignIn();
       }
     } catch (error) {

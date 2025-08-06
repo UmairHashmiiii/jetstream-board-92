@@ -95,10 +95,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    if (error) return { error };
+    
+    // Ensure we fetch the user profile after successful login
+    if (data.user) {
+      await fetchUserProfile(data.user.id);
+    }
+    
     return { error };
   };
 
@@ -106,11 +114,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+        data: {
+          name,
+          role_id: roleId,
+        }
+      }
     });
 
     if (error) return { error };
 
-    // Create user profile
+    // Create user profile immediately (no email verification required)
     if (data.user) {
       const { error: profileError } = await supabase
         .from('users')
@@ -121,7 +136,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role_id: roleId,
         });
 
-      if (profileError) return { error: profileError };
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        return { error: profileError };
+      }
     }
 
     return { error };

@@ -89,14 +89,14 @@ const Dashboard: React.FC = () => {
         { name: 'Completed', value: statusCounts.done, color: 'hsl(var(--success))' },
       ];
 
-      // Calculate sprint progress
-      const sprintGroups = modules?.reduce((acc: any, module) => {
-        const sprint = module.sprint || 'Unassigned';
+      // Get projects for sprint progress (modules don't have sprint field)
+      const sprintGroups = projects?.reduce((acc: any, project) => {
+        const sprint = project.sprint || 'Unassigned';
         if (!acc[sprint]) {
           acc[sprint] = { completed: 0, total: 0 };
         }
         acc[sprint].total++;
-        if (module.status === 'done') {
+        if (project.status === 'done') {
           acc[sprint].completed++;
         }
         return acc;

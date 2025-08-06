@@ -13,12 +13,13 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 interface Project {
   id: string;
   title: string;
-  stack: string;
-  sprint: string;
-  notes?: string;
+  stack: string | null;
+  sprint: string | null;
+  notes?: string | null;
   status: 'not_started' | 'in_progress' | 'blocked' | 'done';
   created_by: string;
   created_at: string;
+  updated_at: string;
   creator?: { name: string };
   member_count?: number;
 }
@@ -71,7 +72,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ onAddProject, onEditProject, 
         member_count: project.project_members?.length || 0
       })) || [];
 
-      setProjects(projectsWithCounts);
+      setProjects(projectsWithCounts as Project[]);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
@@ -81,14 +82,14 @@ const ProjectList: React.FC<ProjectListProps> = ({ onAddProject, onEditProject, 
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.stack.toLowerCase().includes(searchTerm.toLowerCase());
+                         (project.stack?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     const matchesSprint = sprintFilter === 'all' || project.sprint === sprintFilter;
     
     return matchesSearch && matchesStatus && matchesSprint;
   });
 
-  const uniqueSprints = [...new Set(projects.map(p => p.sprint))];
+  const uniqueSprints = [...new Set(projects.map(p => p.sprint).filter(Boolean))];
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -220,7 +221,7 @@ const ProjectList: React.FC<ProjectListProps> = ({ onAddProject, onEditProject, 
 
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
-                  <span>{project.sprint}</span>
+                  <span>{project.sprint || 'No sprint assigned'}</span>
                 </div>
 
                 <div className="flex items-center space-x-2 text-sm text-muted-foreground">
