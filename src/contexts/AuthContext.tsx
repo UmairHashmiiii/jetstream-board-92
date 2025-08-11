@@ -48,9 +48,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+      setLoading(false);
     });
 
     // Listen for auth changes
@@ -111,38 +117,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUp = async (email: string, password: string, name: string, roleId: string) => {
+    // Sign up without forcing email confirmation flow on client side
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}`,
-        data: {
-          name,
-          role_id: roleId,
-        }
-      }
+        // Do not pass emailRedirectTo to avoid sending magic link redirects
+        data: { name, role_id: roleId },
+      },
     });
 
     if (error) return { error };
 
-    // Create user profile immediately (no email verification required)
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          auth_id: data.user.id,
-          name,
-          email,
-          role_id: roleId,
-        });
+    // If no session was returned, try to sign the user in immediately
+    let activeUser = data.user;
+    let activeSession = data.session;
+    if (!activeSession && email && password) {
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (signInError) {
+        // Most common case if email confirmations are enabled in Supabase settings
+        return { error: signInError };
+      }
+      activeUser = signInData.user;
+      activeSession = signInData.session;
+    }
 
+    // Create profile only if we have an authenticated session (RLS requires auth.uid())
+    if (activeUser && activeSession) {
+      const { error: profileError } = await supabase.from('users').insert({
+        auth_id: activeUser.id,
+        name,
+        email,
+        role_id: roleId,
+      });
       if (profileError) {
         console.error('Profile creation error:', profileError);
         return { error: profileError };
       }
+      await fetchUserProfile(activeUser.id);
     }
 
-    return { error };
+    return { error: undefined };
   };
 
   const signOut = async () => {
