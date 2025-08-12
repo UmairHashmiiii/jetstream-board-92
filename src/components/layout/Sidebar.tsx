@@ -26,9 +26,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
     { id: 'settings', label: 'Settings', icon: Settings, roles: ['admin', 'cto'] },
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(profile?.role_name || '')
-  );
+  const filteredMenuItems = profile?.role_name
+    ? menuItems.filter(item => item.roles.includes(profile.role_name!))
+    : menuItems;
 
   return (
     <motion.div

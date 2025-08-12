@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (authId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from('users')
         .select(`
           *,
@@ -89,17 +89,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('auth_id', authId)
         .single();
 
-      if (error) throw error;
-      
+      if (error) {
+        // If no profile exists yet, create a minimal one automatically
+        const noRow = status === 406 || (error as any)?.code === 'PGRST116';
+        if (!noRow) throw error;
+
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData?.user;
+        if (!authUser) return;
+
+        // Pick a default role (prefer 'member', otherwise first available)
+        const { data: roles } = await supabase
+          .from('roles')
+          .select('id, name')
+          .order('name');
+        const defaultRoleId = roles?.find(r => r.name === 'member')?.id || roles?.[0]?.id;
+        if (!defaultRoleId) {
+          console.warn('No roles found to assign to new profile. Skipping profile creation.');
+          setProfile(null);
+          return;
+        }
+
+        const { data: created, error: createErr } = await supabase
+          .from('users')
+          .insert({
+            auth_id: authUser.id,
+            name: (authUser.user_metadata as any)?.name || authUser.email?.split('@')[0] || 'User',
+            email: authUser.email || '',
+            role_id: defaultRoleId,
+          })
+          .select(`*, role:roles(name)`) 
+          .single();
+        if (createErr) throw createErr;
+        setProfile({ ...created, role_name: created.role?.name });
+        return;
+      }
+
+      // Profile found
       setProfile({
         ...data,
-        role_name: data.role?.name
+        role_name: data.role?.name,
       });
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('Error fetching/creating user profile:', error);
     }
   };
-
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,

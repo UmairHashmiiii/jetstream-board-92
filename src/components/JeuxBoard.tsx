@@ -24,7 +24,7 @@ const JeuxBoard: React.FC = () => {
     );
   }
 
-  if (!user || !profile) {
+  if (!user) {
     return (
       <AnimatePresence mode="wait">
         {showAuth === 'signin' ? (
