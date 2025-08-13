@@ -206,7 +206,7 @@ const AddProject: React.FC<AddProjectProps> = ({ onClose, onSuccess }) => {
                     <SelectItem value="not_started">Not Started</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="blocked">Blocked</SelectItem>
-                    <SelectItem value="done">Done</SelectItem>
+                    <SelectItem value="done">Completed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

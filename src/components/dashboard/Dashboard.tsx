@@ -78,12 +78,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToProjects }) => {
       const activeMembers = users?.length || 0;
       const completedModules = modules?.filter(m => m.status === 'done').length || 0;
 
-      // Calculate modules by status
-      const statusCounts = {
-        'not_started': modules?.filter(m => m.status === 'not-started').length || 0,
-        'in_progress': modules?.filter(m => m.status === 'in-progress').length || 0,
-        'blocked': modules?.filter(m => m.status === 'blocked').length || 0,
-        'done': modules?.filter(m => m.status === 'done').length || 0,
+      // Calculate modules by status - using consistent status values
+      const statusCounts = modules?.reduce((acc, module) => {
+        acc[module.status] = (acc[module.status] || 0) + 1;
+        return acc;
+      }, {
+        'not-started': 0,
+        'in-progress': 0,
+        'blocked': 0,
+        'done': 0
+      } as Record<string, number>) || {
+        'not-started': 0,
+        'in-progress': 0,
+        'blocked': 0,
+        'done': 0
       };
 
       const modulesByStatus = [

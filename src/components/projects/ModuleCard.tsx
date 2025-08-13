@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { User, Calendar, MoreHorizontal, Trash2, Edit3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MODULE_STATUSES, getStatusConfig } from '@/utils/statusHelpers';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 interface Module {
   id: string;
@@ -25,37 +26,7 @@ interface ModuleCardProps {
 const ModuleCard: React.FC<ModuleCardProps> = ({ module, onStatusUpdate, onDelete }) => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'not-started':
-        return {
-          color: 'bg-muted text-muted-foreground',
-          label: 'Not Started'
-        };
-      case 'in-progress':
-        return {
-          color: 'bg-warning/20 text-warning border-warning/30',
-          label: 'In Progress'
-        };
-      case 'blocked':
-        return {
-          color: 'bg-destructive/20 text-destructive border-destructive/30',
-          label: 'Blocked'
-        };
-      case 'done':
-        return {
-          color: 'bg-success/20 text-success border-success/30',
-          label: 'Done'
-        };
-      default:
-        return {
-          color: 'bg-muted text-muted-foreground',
-          label: status
-        };
-    }
-  };
-
-  const statusConfig = getStatusConfig(module.status);
+  const statusConfig = getStatusConfig(module.status, 'module');
 
   const handleStatusChange = async (newStatus: string) => {
     setIsUpdatingStatus(true);
@@ -63,12 +34,6 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ module, onStatusUpdate, onDelet
     setIsUpdatingStatus(false);
   };
 
-  const statusOptions = [
-    { value: 'not-started', label: 'Not Started' },
-    { value: 'in-progress', label: 'In Progress' },
-    { value: 'blocked', label: 'Blocked' },
-    { value: 'done', label: 'Done' }
-  ];
 
   return (
     <motion.div
@@ -129,15 +94,15 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ module, onStatusUpdate, onDelet
         >
           <SelectTrigger className="h-8 text-sm">
             <div className="flex items-center">
-              <div className={`w-2 h-2 rounded-full mr-2 ${statusConfig.color.split(' ')[0]}`} />
+              <div className={`w-2 h-2 rounded-full mr-2 ${statusConfig.bgColor.split(' ')[0]}`} />
               <SelectValue />
             </div>
           </SelectTrigger>
           <SelectContent>
-            {statusOptions.map((option) => (
+            {MODULE_STATUSES.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 <div className="flex items-center">
-                  <div className={`w-2 h-2 rounded-full mr-2 ${getStatusConfig(option.value).color.split(' ')[0]}`} />
+                  <div className={`w-2 h-2 rounded-full mr-2 ${option.bgColor.split(' ')[0]}`} />
                   {option.label}
                 </div>
               </SelectItem>
@@ -152,9 +117,7 @@ const ModuleCard: React.FC<ModuleCardProps> = ({ module, onStatusUpdate, onDelet
           <User className="w-4 h-4 mr-2" />
           {module.assignee_name || 'Unassigned'}
         </div>
-        <Badge className={statusConfig.color} variant="outline">
-          {statusConfig.label}
-        </Badge>
+        <StatusBadge status={module.status} type="module" />
       </div>
     </motion.div>
   );

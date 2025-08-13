@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Plus, Edit3, Trash2, Users, Calendar, Target, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Users, Calendar, Target, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRealTimeData } from '@/hooks/useRealTimeData';
+import { getStatusConfig } from '@/utils/statusHelpers';
 import AddModule from './AddModule';
 import ModuleCard from './ModuleCard';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import StatusBadge from '@/components/ui/StatusBadge';
+import EmptyState from '@/components/ui/EmptyState';
 
 interface Project {
   id: string;
@@ -41,9 +44,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
   const { profile } = useAuth();
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
-  const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModule, setShowAddModule] = useState(false);
+  
+  const {
+    data: modules,
+    loading: modulesLoading,
+    refreshData: refreshModules,
+    setData: setModules
+  } = useRealTimeData<Module>('project_modules', [], { column: 'project_id', value: projectId });
 
   useEffect(() => {
     fetchProjectDetails();
@@ -63,24 +72,8 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
       if (projectError) throw projectError;
       setProject(projectData);
 
-      // Fetch project modules with assignee names
-      const { data: modulesData, error: modulesError } = await supabase
-        .from('project_modules')
-        .select(`
-          *,
-          assignee:users!assigned_to(name)
-        `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (modulesError) throw modulesError;
-      
-      const formattedModules = modulesData.map(module => ({
-        ...module,
-        assignee_name: module.assignee?.name || null
-      }));
-      
-      setModules(formattedModules);
+      // Load modules with real-time updates
+      await refreshModules();
     } catch (error: any) {
       console.error('Error fetching project details:', error);
       toast({
@@ -142,38 +135,23 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      // Legacy mappings
-      case 'active':
-        return 'bg-success/20 text-success border-success/30';
-      case 'on-hold':
-        return 'bg-warning/20 text-warning border-warning/30';
-      case 'completed':
-        return 'bg-primary/20 text-primary border-primary/30';
-      // Current project status values
-      case 'not_started':
-        return 'bg-muted text-muted-foreground';
-      case 'in_progress':
-        return 'bg-warning/20 text-warning border-warning/30';
-      case 'blocked':
-        return 'bg-destructive/20 text-destructive border-destructive/30';
-      case 'done':
-        return 'bg-success/20 text-success border-success/30';
-      default:
-        return 'bg-muted text-muted-foreground';
-    }
-  };
-
+  // Optimized status statistics calculation
   const getModuleStats = () => {
     const total = modules.length;
-    const notStarted = modules.filter(m => m.status === 'not-started').length;
-    const inProgress = modules.filter(m => m.status === 'in-progress').length;
-    const blocked = modules.filter(m => m.status === 'blocked').length;
-    const done = modules.filter(m => m.status === 'done').length;
+    const stats = modules.reduce((acc, module) => {
+      acc[module.status] = (acc[module.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
     
-    return { total, notStarted, inProgress, blocked, done };
+    return {
+      total,
+      notStarted: stats['not-started'] || 0,
+      inProgress: stats['in-progress'] || 0,
+      blocked: stats['blocked'] || 0,
+      done: stats['done'] || 0
+    };
   };
+
 
   if (loading) {
     return (
@@ -208,9 +186,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Projects
           </Button>
-          <Badge className={getStatusColor(project.status)}>
-            {project.status.replace('-', ' ').toUpperCase()}
-          </Badge>
+          <StatusBadge status={project.status} type="project" />
         </div>
 
         <div className="space-y-4">
@@ -279,8 +255,19 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
           </Button>
         </div>
 
-        {modules.length > 0 ? (
+        {modulesLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="cyber-card p-6 loading-shimmer h-48" />
+            ))}
+          </div>
+        ) : modules.length > 0 ? (
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ staggerChildren: 0.1 }}
+          >
             {modules.map((module) => (
               <ModuleCard
                 key={module.id}
@@ -289,19 +276,15 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
                 onDelete={handleDeleteModule}
               />
             ))}
-          </div>
+          </motion.div>
         ) : (
-          <div className="text-center py-12">
-            <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">No Modules Yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Start by adding your first module to this project
-            </p>
-            <Button onClick={() => setShowAddModule(true)} className="btn-glow">
-              <Plus className="w-4 h-4 mr-2" />
-              Add First Module
-            </Button>
-          </div>
+          <EmptyState
+            icon={Target}
+            title="No Modules Yet"
+            description="Start by adding your first module to organize your project work"
+            actionLabel="Add First Module"
+            onAction={() => setShowAddModule(true)}
+          />
         )}
       </div>
 
@@ -312,7 +295,7 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
           onClose={() => setShowAddModule(false)}
           onSuccess={() => {
             setShowAddModule(false);
-            fetchProjectDetails();
+            refreshModules();
           }}
         />
       )}
