@@ -232,8 +232,8 @@ const AddTeamMember: React.FC<AddTeamMemberProps> = ({ onClose, onSuccess }) => 
 
           <div className="bg-muted/20 p-3 rounded-lg border border-border/50">
             <p className="text-xs text-muted-foreground">
-              <strong>Note:</strong> The new team member will receive an email to verify their account. 
-              They can then sign in using the provided credentials.
+              <strong>Note:</strong> Accounts are created instantly. If your Supabase project requires email confirmations,
+              disable them in Auth settings to allow immediate access.
             </p>
           </div>
 

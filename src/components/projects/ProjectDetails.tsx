@@ -144,10 +144,24 @@ const ProjectDetails: React.FC<ProjectDetailsProps> = ({ projectId, onBack }) =>
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-success/20 text-success border-success/30';
-      case 'on-hold': return 'bg-warning/20 text-warning border-warning/30';
-      case 'completed': return 'bg-primary/20 text-primary border-primary/30';
-      default: return 'bg-muted text-muted-foreground';
+      // Legacy mappings
+      case 'active':
+        return 'bg-success/20 text-success border-success/30';
+      case 'on-hold':
+        return 'bg-warning/20 text-warning border-warning/30';
+      case 'completed':
+        return 'bg-primary/20 text-primary border-primary/30';
+      // Current project status values
+      case 'not_started':
+        return 'bg-muted text-muted-foreground';
+      case 'in_progress':
+        return 'bg-warning/20 text-warning border-warning/30';
+      case 'blocked':
+        return 'bg-destructive/20 text-destructive border-destructive/30';
+      case 'done':
+        return 'bg-success/20 text-success border-success/30';
+      default:
+        return 'bg-muted text-muted-foreground';
     }
   };
 

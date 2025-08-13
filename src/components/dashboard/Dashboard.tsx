@@ -80,8 +80,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToProjects }) => {
 
       // Calculate modules by status
       const statusCounts = {
-        'not_started': modules?.filter(m => m.status === 'not_started').length || 0,
-        'in_progress': modules?.filter(m => m.status === 'in_progress').length || 0,
+        'not_started': modules?.filter(m => m.status === 'not-started').length || 0,
+        'in_progress': modules?.filter(m => m.status === 'in-progress').length || 0,
         'blocked': modules?.filter(m => m.status === 'blocked').length || 0,
         'done': modules?.filter(m => m.status === 'done').length || 0,
       };
